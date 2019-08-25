@@ -1,15 +1,23 @@
-import itertools
 import random
 
 from enums import GameState
 
 
 class Block:
-    def __init__(self):
+    def __init__(self, position):
+        self._position = position
         self._showing = False
 
     def to_dict(self):
         raise NotImplementedError
+
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, value):
+        self._position = value - 0.5
 
     @property
     def showing(self):
@@ -20,8 +28,8 @@ class Block:
 
 
 class NumberBlock(Block):
-    def __init__(self, number, color):
-        super().__init__()
+    def __init__(self, block_id, number, color):
+        super().__init__(block_id)
         self._number = number
         self._color = color
 
@@ -49,7 +57,7 @@ class NumberBlock(Block):
 
 class JokerBlock(Block):
     def __init__(self, color):
-        super().__init__()
+        super().__init__(-1)
         self._color = color
 
     def __repr__(self):
@@ -69,7 +77,7 @@ class JokerBlock(Block):
 class Player:
     def __init__(self, name):
         self._name = name
-        self._blocks = []
+        self._deck = []
         self._last_draw = None
 
     def __repr__(self):
@@ -81,13 +89,16 @@ class Player:
             block = blocks.pop()
         else:
             block = blocks.pop(index)
-        self._last_draw = block
-        self._blocks.append(block)
-        self.sort_blocks()
 
-    def sort_blocks(self):
-        self._blocks.sort(key=lambda block: block.number)
-        self._blocks.sort(key=lambda block: block.color == 'black', reverse=True)
+        if isinstance(block, JokerBlock):
+            joker_position = input(f"Enter position to place Joker block \n {', '.join([str(block.position) for block in self._deck])}")
+            block.position = int(joker_position)
+        self._last_draw = block
+        self._deck.append(block)
+        self.sort_deck()
+
+    def sort_deck(self):
+        self._deck.sort(key=lambda block: block.position)
 
     def guess_block(self, target_player, target_block_index, guess):
         target_block = target_player.deck[target_block_index]
@@ -102,18 +113,12 @@ class Player:
 
     @property
     def deck(self):
-        return self._blocks
+        return self._deck
 
 
 class Game:
-    colors = ('white', 'black')
-
-    def __init__(self, *players, include_jokers=False):
-        self._blocks = [NumberBlock(number=item[0], color=item[1])
-                        for item in itertools.product([i for i in range(12)], self.colors)]
-        if include_jokers:
-            self._blocks += [JokerBlock(color) for color in self.colors]
-
+    def __init__(self, *players, blocks):
+        self._blocks = blocks
         self._player_count = len(players)
         self._player_1 = None
         self._player_2 = None
