@@ -106,6 +106,11 @@ class Game:
 
         self._state = GameState.CREATED
 
+    def take_turn(self, turn):
+        from_player = getattr(self, f'player_{turn.from_player_id}')  # type: Player
+        to_player = getattr(self, f'player_{turn.to_player_id}')      # type: Player
+        from_player.guess_block(target_player=to_player, target_block_index=turn.target, guess=turn.guess)
+
     @property
     def state(self):
         return self._state
@@ -133,3 +138,44 @@ class Game:
     @property
     def remaining_blocks(self):
         return self._blocks
+
+
+class Turn:
+    def __init__(self, from_player_id, to_player_id, target, guess):
+        self._from_player_id = from_player_id
+        self._to_player_id = to_player_id
+        self._target = target
+        self._guess = guess
+
+    @property
+    def from_player_id(self):
+        return self._from_player_id
+
+    @property
+    def to_player_id(self):
+        return self._to_player_id
+
+    @property
+    def target(self):
+        return self._target
+
+    @property
+    def guess(self):
+        return self._guess
+
+
+class Message:
+    def __init__(self, action, body):
+        self._action = action
+        self._body = body
+
+    def __repr__(self):
+        return f"Message - {self.action}"
+
+    @property
+    def action(self):
+        return self._action
+
+    @property
+    def body(self):
+        return self._body
