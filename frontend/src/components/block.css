@@ -1,0 +1,39 @@
+.block-outer {
+    margin: 0 2px;
+    border: 1px solid black;
+    height: 110px;
+    width: 80px;
+    border-radius: 3px;
+    display: flex;
+    background: -webkit-linear-gradient(0.7turn, rgb(78, 78, 78), rgba(6, 6, 6, 0.93));
+}
+
+.block-inner {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    margin: 2px;
+    border-radius: 2px;
+    box-sizing: border-box;
+    border: 1px solid black;
+    box-shadow: inset 0px -1px 4px 2px black;
+}
+
+.block-open {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 45px;
+    font-weight: bolder;
+    flex-direction: column;
+}
+
+.block-number-line {
+    display: block;
+    width: 41px;
+    height: 2px;
+    background: white;
+}
