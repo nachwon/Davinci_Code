@@ -1,15 +1,25 @@
 import random
 
-from enums import GameState
+from enums import GameState, BlockColors
 
 
 class Block:
-    def __init__(self, position):
-        self._position = position
-        self._showing = False
+    def __init__(self, position, number, color, showing=False):
+        self._position = position                   # type: int
+        self._number = number                       # type: int or str
+        self._color = BlockColors(color).value      # type: str
+        self._showing = showing
+
+    def __repr__(self):
+        return f"{self._color}-{self._number}-{'open' if self.showing else 'closed'}"
 
     def to_dict(self):
-        raise NotImplementedError
+        return {
+            "position": self._position,
+            "number": self._number,
+            "color": self._color,
+            "showing": self._showing
+        }
 
     @property
     def position(self):
@@ -20,33 +30,6 @@ class Block:
         self._position = value - 0.5
 
     @property
-    def showing(self):
-        return self._showing
-
-    def flip(self):
-        self._showing = True
-
-
-class NumberBlock(Block):
-    def __init__(self, block_id, number, color):
-        super().__init__(block_id)
-        self._number = number
-        self._color = color
-
-    def __repr__(self):
-        return f"{self._color}-{self._number}-{'open' if self.showing else 'closed'}"
-
-    def __eq__(self, other):
-        return other.color == self.color
-
-    def to_dict(self):
-        return {
-            'number': self._number,
-            'color': self._color,
-            'showing': self._showing
-        }
-
-    @property
     def number(self):
         return self._number
 
@@ -54,24 +37,12 @@ class NumberBlock(Block):
     def color(self):
         return self._color
 
-
-class JokerBlock(Block):
-    def __init__(self, color):
-        super().__init__(-1)
-        self._color = color
-
-    def __repr__(self):
-        return f"{self._color}-Joker-{'open' if self.showing else 'closed'}"
-
     @property
-    def color(self):
-        return self._color
+    def showing(self):
+        return self._showing
 
-    def to_dict(self):
-        return {
-            'color': self._color,
-            'showing': self._showing
-        }
+    def flip(self):
+        self._showing = True
 
 
 class Player:
@@ -90,7 +61,7 @@ class Player:
         else:
             block = blocks.pop(index)
 
-        if isinstance(block, JokerBlock):
+        if block.number == '-':
             joker_position = input(f"Enter position to place Joker block \n {', '.join([str(block.position) for block in self._deck])}")
             block.position = int(joker_position)
         self._last_draw = block
@@ -112,12 +83,17 @@ class Player:
             return False
 
     @property
+    def name(self):
+        return self._name
+
+    @property
     def deck(self):
         return self._deck
 
 
 class Game:
-    def __init__(self, *players, blocks):
+    def __init__(self, *players, session_id, blocks):
+        self._session_id = session_id
         self._blocks = blocks
         self._player_count = len(players)
         self._player_1 = None
