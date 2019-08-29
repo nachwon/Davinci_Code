@@ -11,3 +11,8 @@ class GameState(enum.Enum):
     INITIATED = 'I'
     PLAYING = 'P'
     FINISHED = 'F'
+
+
+class Actions(enum.Enum):
+    ADD_PLAYER = 'add_player'
+    START_GAME = 'start_game'
