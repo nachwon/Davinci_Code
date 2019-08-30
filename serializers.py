@@ -1,5 +1,6 @@
 import ujson
 
+from enums import Actions
 from models import Block, Message, Game
 
 
@@ -14,9 +15,13 @@ class ModelSerializer:
         if not set(value.keys()).issubset(set(self._required_fields)):
             raise ValueError("All the required fields must be provided.")
 
+    def _validate(self, value):
+        pass
+
     def deserialize(self):
         value = ujson.loads(self._value)
         self._check_required(value)
+        self._validate(value)
         return self._model(**value)
 
     def serialize(self):
@@ -26,6 +31,9 @@ class ModelSerializer:
 class MessageSerializer(ModelSerializer):
     _model = Message
     _required_fields = ('action', 'body')
+
+    def _validate(self, value):
+        assert value['action'] in [action.value for action in Actions]
 
 
 class BlockSerializer(ModelSerializer):
