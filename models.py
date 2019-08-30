@@ -46,8 +46,9 @@ class Block:
 
 
 class Player:
-    def __init__(self, name):
+    def __init__(self, name, ws):
         self._name = name
+        self._ws = ws
         self._deck = []
         self._last_draw = None
 
@@ -82,6 +83,12 @@ class Player:
             print('Guess Failed!')
             return False
 
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "deck": self.deck
+        }
+
     @property
     def name(self):
         return self._name
@@ -90,26 +97,38 @@ class Player:
     def deck(self):
         return self._deck
 
+    @property
+    def ws(self):
+        return self._ws
+
 
 class Game:
     def __init__(self, *players, session_id, blocks):
         self._session_id = session_id
         self._blocks = blocks
-        self._player_count = len(players)
         self._player_1 = None
         self._player_2 = None
         self._player_3 = None
         self._player_4 = None
 
+        if len(players) > 4:
+            raise ValueError("Too many players.")
+
+        self._players = players
         for index, player in enumerate(players):
             setattr(self, f'_player_{index + 1}', player)
 
         self._state = GameState.CREATED
 
-    def take_turn(self, turn):
-        from_player = getattr(self, f'player_{turn.from_player_id}')  # type: Player
-        to_player = getattr(self, f'player_{turn.to_player_id}')      # type: Player
-        from_player.guess_block(target_player=to_player, target_block_index=turn.target, guess=turn.guess)
+    def to_dict(self):
+        data = {
+            "remaining_blocks": self.remaining_blocks
+        }
+        for index, player in enumerate(self._players):
+            player = player.to_dict()
+            data[f"player_{index + 1}"] = player
+
+        return data
 
     @property
     def state(self):
@@ -117,7 +136,7 @@ class Game:
 
     @state.setter
     def state(self, value):
-        self._state = GameState(value).name
+        self._state = GameState(value)
 
     @property
     def player_1(self):
