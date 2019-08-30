@@ -16,3 +16,5 @@ class GameState(enum.Enum):
 class Actions(enum.Enum):
     ADD_PLAYER = 'add_player'
     START_GAME = 'start_game'
+    PICK_STARTING = 'pick_starting'
+    TAKE_TURN = 'take_turn'
