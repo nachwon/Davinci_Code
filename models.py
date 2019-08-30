@@ -1,4 +1,4 @@
-import random
+import inspect
 
 from enums import GameState, BlockColors
 
@@ -11,7 +11,7 @@ class Block:
         self._showing = showing
 
     def __repr__(self):
-        return f"{self._color}-{self._number}-{'open' if self.showing else 'closed'}"
+        return f"{self._color}-{self._number if self._number != '-' else 'Joker'}-{'open' if self.showing else 'closed'}"
 
     def to_dict(self):
         return {
@@ -27,7 +27,7 @@ class Block:
 
     @position.setter
     def position(self, value):
-        self._position = value - 0.5
+        self._position = value
 
     @property
     def number(self):
@@ -55,16 +55,16 @@ class Player:
     def __repr__(self):
         return f"Player: {self._name}"
 
-    def draw_block(self, blocks, index=None):
-        if not index:
-            random.shuffle(blocks)
-            block = blocks.pop()
-        else:
-            block = blocks.pop(index)
+    def __eq__(self, other):
+        return other.name == self.name
+
+    def draw_block(self, blocks, index):
+        block = blocks.pop(index)
 
         if block.number == '-':
             joker_position = input(f"Enter position to place Joker block \n {', '.join([str(block.position) for block in self._deck])}")
             block.position = int(joker_position)
+
         self._last_draw = block
         self._deck.append(block)
         self.sort_deck()
@@ -103,30 +103,25 @@ class Player:
 
 
 class Game:
-    def __init__(self, *players, session_id, blocks):
+    def __init__(self,  session_id):
         self._session_id = session_id
-        self._blocks = blocks
+        self._blocks = []
         self._player_1 = None
         self._player_2 = None
         self._player_3 = None
         self._player_4 = None
-
-        if len(players) > 4:
-            raise ValueError("Too many players.")
-
-        self._players = players
-        for index, player in enumerate(players):
-            setattr(self, f'_player_{index + 1}', player)
-
         self._state = GameState.CREATED
 
     def to_dict(self):
         data = {
             "remaining_blocks": self.remaining_blocks
         }
-        for index, player in enumerate(self._players):
-            player = player.to_dict()
-            data[f"player_{index + 1}"] = player
+
+        for attr in dir(self):
+            if attr.startswith('player'):
+                player = getattr(self, attr)
+                if player:
+                    data[attr] = player.to_dict()
 
         return data
 
@@ -142,21 +137,45 @@ class Game:
     def player_1(self):
         return self._player_1
 
+    @player_1.setter
+    def player_1(self, value):
+        assert isinstance(value, Player)
+        self._player_1 = value
+
     @property
     def player_2(self):
         return self._player_2
+
+    @player_2.setter
+    def player_2(self, value):
+        assert isinstance(value, Player)
+        self._player_2 = value
 
     @property
     def player_3(self):
         return self._player_3
 
+    @player_3.setter
+    def player_3(self, value):
+        assert isinstance(value, Player)
+        self._player_3 = value
+
     @property
     def player_4(self):
         return self._player_4
 
+    @player_4.setter
+    def player_4(self, value):
+        assert isinstance(value, Player)
+        self._player_4 = value
+
     @property
     def remaining_blocks(self):
         return self._blocks
+
+    @remaining_blocks.setter
+    def remaining_blocks(self, value):
+        self._blocks = value
 
 
 class Turn:
