@@ -1,11 +1,10 @@
 .block-outer {
-    margin: 0 2px;
-    border: 1px solid black;
+    margin: 3px 3px;
     height: 110px;
     width: 80px;
     border-radius: 3px;
     display: flex;
-    background: -webkit-linear-gradient(0.7turn, rgb(78, 78, 78), rgba(6, 6, 6, 0.93));
+    box-shadow: 2px 1px 9px -2px #333;
 }
 
 .block-inner {
@@ -15,9 +14,9 @@
     margin: 2px;
     border-radius: 2px;
     box-sizing: border-box;
-    border: 1px solid black;
-    box-shadow: inset 0px -1px 4px 2px black;
 }
+
+/* block front */
 
 .block-open {
     display: flex;
@@ -25,7 +24,6 @@
     height: 100%;
     align-items: center;
     justify-content: center;
-    color: white;
     font-size: 45px;
     font-weight: bolder;
     flex-direction: column;
@@ -35,5 +33,86 @@
     display: block;
     width: 41px;
     height: 2px;
+}
+
+/* block behind */
+
+.block-close {
+    height: 100%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.block-close-dot-container {
+    width: 30px;
+}
+
+.block-close-dot-wrapper-left {
+    margin: 2px 0;
+    display: flex;
+    justify-content: end;
+}
+
+.block-close-dot-wrapper-center {
+    margin: 2px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.block-close-dot-wrapper-right {
+    margin: 2px 0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.block-close-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+/* black block */
+
+.block-color-B {
+    background: -webkit-linear-gradient(0.7turn, rgb(78, 78, 78), rgba(6, 6, 6));
+}
+
+.block-color-B .block-inner {
+    box-shadow: inset 0px -1px 9px 3px black;
+}
+
+.block-color-B .block-open {
+    color: white;
+}
+
+.block-color-B .block-number-line {
     background: white;
 }
+
+.block-color-B .block-close-dot {
+    background: linear-gradient(0.4turn, #040404, #545454);
+}
+
+/* white block */
+
+.block-color-W {
+    background: -webkit-linear-gradient(0.7turn, rgb(255, 255, 255), rgb(191, 190, 190));
+}
+
+.block-color-W .block-inner {
+    box-shadow: inset 0px 2px 5px 3px #969696
+}
+
+.block-color-W .block-open {
+    color: black;
+}
+
+.block-color-W .block-number-line {
+    background: black;
+}
+
+.block-color-W .block-close-dot {
+    background: linear-gradient(0.4turn, #f5f5f5, #a0a0a0ed);
+}
+

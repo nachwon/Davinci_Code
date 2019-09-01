@@ -1,3 +1,66 @@
 .game-board {
-    display: flex;
+    display: inline-flex;
+    width: calc(80px * 14);
+    flex-wrap: wrap;
+    justify-content: center;
+    background-image: url('../assets/background.jpg');
+    background-size: contain;
+}
+
+.game-board-opponent {
+    display: inline-flex;
+}
+
+.game-board-remaining {
+    display: inline-flex;
+    flex-wrap: inherit;
+}
+
+.game-board-mine {
+    display: inline-flex;
+}
+
+.guess-modal {
+    display: block;
+    width: 220px;
+    height: 110px;
+    border-radius: 4px;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 50%;
+    background: #ffffffd4;
+    box-shadow: 0px 0px 10px 1px black;
+}
+
+.add-player {
+    width: 250px;
+    margin: 30px auto;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 20px;
+}
+
+.add-player-form {
+    display: inline-flex;
+    flex-direction: column;
+}
+
+.player-avatar-me {
+    border: 2px solid #06c200;
+}
+
+.player-avatar {
+    border-radius: 15% !important;
+    margin: 0 5px;
+}
+
+.player-status-container {
+    width: 300px;
+    margin: auto;
+    height: 100px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }

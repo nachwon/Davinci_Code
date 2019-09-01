@@ -9,9 +9,10 @@ class Block extends React.Component {
     }
 
     render() {
-        const {number, color, showing} = this.props
+        const {index, number, color, showing} = this.props
+        console.log(showing)
         return (
-            <div className="block-outer">
+            <div onClick={() => this.props.onClick(index)} className={`block-outer block-color-${color}`}>
                 <div className="block-inner">
                     {
                         showing ? 
@@ -21,7 +22,23 @@ class Block extends React.Component {
                             </div>
                             :
                             <div className="block-close">
-
+                                <div className="block-close-dot-container">
+                                    <div className="block-close-dot-wrapper-right">
+                                        <div className="block-close-dot" />
+                                    </div>
+                                    <div className="block-close-dot-wrapper-center">
+                                        <div className="block-close-dot" />
+                                    </div>
+                                    <div className="block-close-dot-wrapper-left">
+                                        <div className="block-close-dot" />
+                                    </div>
+                                    <div className="block-close-dot-wrapper-center">
+                                        <div className="block-close-dot" />
+                                    </div>
+                                    <div className="block-close-dot-wrapper-right">
+                                        <div className="block-close-dot" />
+                                    </div>
+                                </div>
                             </div>
                     }
                 </div>
