@@ -1,9 +1,11 @@
+import ujson
+
 from sanic import Sanic
 from sanic.websocket import WebSocketProtocol
 
 from enums import Actions, GameState
 from managers import GameManager
-from serializers import MessageSerializer
+from serializers import RequestSerializer
 
 app = Sanic()
 
@@ -17,27 +19,36 @@ async def feed(request, ws, *args, **kwargs):
     if not manager:
         manager = GameManager(session_id)
         on_going_sessions[session_id] = manager
+        message = "Game created!!"
+    else:
+        message = f"Joined the session {session_id}"
     game = manager.game
+
+    await ws.send(ujson.dumps({
+        "game_state": game.state.value,
+        "message": message,
+        "body": None
+    }))
+    manager.add_waiting(ws=ws)
+    await manager._distribute_game(to_waiting=True)
 
     while True:
         message = await ws.recv()
-        message = MessageSerializer(message).deserialize()
+        message = RequestSerializer().deserialize(message)
+        print(message)
 
         if GameState(game.state) == GameState.CREATED:
             print('Waiting for players...')
             if Actions(message.action) == Actions.ADD_PLAYER:
-                await manager.add_player(name=message.body, ws=ws)
-                # await ws.send(f'Player {message.body} have been added!')
-                # print(manager._players)
+                await manager.add_player(name=message.body['name'], ws=ws)
 
             elif Actions(message.action) == Actions.START_GAME:
                 print('Game started!!')
-                await manager.initiate_new_game(session_id)
+                await manager.initiate_new_game()
 
         elif GameState(manager.game.state) == GameState.INITIATED:
             print('pick starting blocks!!')
-            await manager.update_game(message)
-            manager.check_ready()
+            await manager.update_game(message=message)
 
         elif GameState(manager.game.state) == GameState.PLAYING:
             print('running!!')
