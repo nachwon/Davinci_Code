@@ -19,9 +19,18 @@ class Main extends React.Component {
     }
 
     render() {
-        console.log('MyID', this.store.player_id);
         return (
             <Container>
+                <div>
+                    <div>{`My ID: ${this.store.player_id}`}</div>
+                    <div>{`Game State: ${this.store.gameState}`}</div>
+                    <div>{`Action: ${this.store.action}`}</div>
+                    <div>{`Turn: ${this.store.turn}`}</div>
+                    <div>{this.store.player_id === this.store.turn ?
+                        "My Turn" : "Your Turn"
+                    }</div>
+                    <div>{`player state: ${this.store.player_state}`}</div>
+                </div>
                 {this.store.gameState === gameStateEnum.C ?
                     <PlayerStatus MainStore={this.store} />
                     :null}

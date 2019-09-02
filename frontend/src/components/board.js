@@ -1,10 +1,7 @@
 import React from 'react';
-import { Dialog, Button } from '@material-ui/core';
+import { Dialog, Radio, Button } from '@material-ui/core';
 import { observer, inject } from "mobx-react";
-import BoardStore from "../stores/boardStore";
-import GuessModal from "./guessModal";
-import Block from "./block";
-import { bind } from 'decko';
+import "./board.css";
 
 @inject('MainStore')
 @observer
@@ -15,7 +12,6 @@ class GameBoard extends React.Component {
     }
 
     render() {
-        console.log(this.store.remainingBlocks)
         return (
             <div className="game-board">
                 <div className="game-board-opponent">
@@ -27,6 +23,20 @@ class GameBoard extends React.Component {
                 <div className="game-board-mine">
                     {this.store.renderMyBlocks}
                 </div>
+                <Dialog open={this.store.openModal} onClose={() => this.store.openModal = false}>
+                    <div className="guess-modal-wrapper">
+                        {['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '-'].map((value, index) => {
+                            return <Radio
+                                key={index}
+                                checked={this.store.guess === value}
+                                onChange={this.store.handleGuessChange}
+                                value={value}
+                                name="radio-button-demo"
+                            />
+                        })}
+                        <Button onClick={this.store.makeGuess}>Guess!</Button>
+                    </div>
+                </Dialog>
             </div>
         )
     }

@@ -1,0 +1,7 @@
+.guess-modal-wrapper {
+    display: flex;
+    width: 170px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+}

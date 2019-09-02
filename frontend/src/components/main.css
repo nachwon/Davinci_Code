@@ -4,7 +4,7 @@
     flex-wrap: wrap;
     justify-content: center;
     background-image: url('../assets/background.jpg');
-    background-size: contain;
+    background-size: cover;
 }
 
 .game-board-opponent {

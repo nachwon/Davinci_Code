@@ -12,24 +12,45 @@ class MainStore extends React.Component {
     @observable message = '';
 
     // Game States
-    @observable gameState = 'CREATED'
-    @observable remainingBlocks = []
+    @observable gameState = 'CREATED';
+    @observable action = '';
+    @observable remainingBlocks = [];
+    @observable turn = null;
 
-    // Player State
+    // Player States
     @observable players = [];
     @observable player_id = null;
     @observable player_name = null;
+    @observable player_state = null;
 
-    // Deck State
+    // Deck States
     @observable myDeck = [];
-    @observable opponentDeck = [];
+    @observable player2Deck = [];
+
+    // GuessModal
+    @observable openModal = false;
+    @observable to_player_id = null;
+    @observable target = null;
+    @observable guess = null;
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 
     @action.bound
     handleMessage(message) {
         const response = JSON.parse(message.data);
+        console.log('response', response);
+
+        this.action = response.action;
+
         if (response.hasOwnProperty('message') && response.message) {
             this.message = response.message;
             this.showMessage = true;
+        }
+
+        if (response.action === 'add_player') {
+            this.handleAddPlayer(response)
         }
 
         if (response.action === 'update_game') {
@@ -37,6 +58,10 @@ class MainStore extends React.Component {
             this.players = response.body.players;
             this.gameState = gameStateEnum[response.body.game_state];
             this.remainingBlocks = response.body.remaining_blocks;
+
+            if (response.body.game_state === 'P') {
+                this.turn = response.body.turn;
+            }
 
             const me = this.players.filter((value) => {
                 return value.name === this.player_name
@@ -47,13 +72,9 @@ class MainStore extends React.Component {
 
             if (me.length > 0 && opponents.length > 0) {
                 this.myDeck = me[0].deck;
-                this.opponentDeck = opponents[0].deck;
-                console.log('decks', toJS(this.myDeck), toJS(this.opponentDeck))
+                this.player_state = me[0].state;
+                this.player2Deck = opponents[0].deck;
             };
-        }
-
-        if (response.action === 'add_player') {
-            this.handleAddPlayer(response)
         }
     }
 
@@ -80,20 +101,70 @@ class MainStore extends React.Component {
     }
 
     @action.bound
-    pickBlock(block_index) {
-        const message = {
-            "action": "pick_block",
-            "body": {
-                "player_id": this.player_id,
-                "block_index": block_index
+    async pickBlock(block_index) {
+        // If game is playing
+        if (this.gameState === gameStateEnum.P) {
+            if (this.player_id === this.turn) {
+                if (this.player_state === 'D') {
+                    const message = {
+                        "action": "take_turn",
+                        "body": {
+                            "player_id": this.player_id,
+                            "block_index": block_index
+                        }
+                    };
+                    this.sendMessage(message);
+                } else if (this.player_state === 'G') {
+                    this.message = 'You have to make a guess';
+                    this.showMessage = true;
+                }
+
+            } else {
+                this.message = 'Not your turn'
+                this.showMessage = true;
             }
+        // If game is initiated
+        } else {
+            const message = {
+                "action": "pick_block",
+                "body": {
+                    "player_id": this.player_id,
+                    "block_index": block_index
+                }
+            }
+            this.sendMessage(message);
         }
-        this.sendMessage(message);
+        
     }
 
     @action
     sendMessage(message) {
         this.ws.send(JSON.stringify(message));
+    }
+
+    @action.bound
+    showGuessModal(to_player_id, target) {
+        if (this.player_id !== to_player_id) {
+            this.to_player_id = to_player_id;
+            this.target = target;
+            this.openModal = true;
+        }
+    }
+
+    @action.bound
+    handleGuessChange(e) {
+        this.guess = e.target.value;
+    }
+
+    @action.bound
+    makeGuess(e) {
+        const guess_message = {
+            "to_player_id": this.to_player_id,
+            "target": this.target,
+            "guess": this.guess
+        }
+        this.sendMessage(guess_message);
+        this.openModal = false;
     }
 
     @computed get renderRemainingBlocks() {
@@ -116,8 +187,8 @@ class MainStore extends React.Component {
         if (this.myDeck) {
             return this.myDeck.map((value, index) => {
                 return (
-                    <Block 
-                        onClick={() => this.showGuessModal(2, 1, index, this.state.guess)} 
+                    <Block
+                        onClick={() => this.showGuessModal(1, index)} 
                         key={index} 
                         index={index} 
                         number={value.number} 
@@ -130,16 +201,16 @@ class MainStore extends React.Component {
     }
 
     @computed get renderYourBlocks() {
-        if (this.opponentDeck) {
-            return this.opponentDeck.map((value, index) => {
+        if (this.player2Deck) {
+            return this.player2Deck.map((value, index) => {
                 return (
                     <Block 
-                        onClick={() => this.showGuessModal(2, 1, index, this.state.guess)} 
-                        key={index} 
+                        onClick={() => this.showGuessModal(2, index)} 
+                        key={index}
                         index={index} 
                         number={value.number} 
                         color={value.color} 
-                        showing={false} 
+                        showing={value.showing} 
                     />
                 )
             })
