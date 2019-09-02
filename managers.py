@@ -3,8 +3,7 @@ import itertools
 import random
 
 from enums import GameState, BlockColors, Actions
-from models import Game, Block, Player, Turn, Response
-from serializers import GameSerializer, ResponseSerializer
+from models import Game, Block, Player, Response, Guess
 
 
 class GameManager:
@@ -12,7 +11,6 @@ class GameManager:
         self._game = Game(session_id=session_id)
         self._waiting = []
         self._players = []
-        self._turn = None
 
     async def initiate_new_game(self):
         if not self._players:
@@ -33,15 +31,15 @@ class GameManager:
 
         response = Response(**message)
 
-        await self._distribute_response(response=response)
-        await self._distribute_game()
+        await self.distribute_response(response=response)
+        await self.distribute_game()
         return self.game
 
     def add_waiting(self, ws):
         self._waiting.append(ws)
 
     async def notify_waiting(self):
-        serialized_game = GameSerializer(self.game).serialize()
+        serialized_game = self.game.serialize()
         tasks = [ws.send(serialized_game) for ws in self._waiting]
         await asyncio.gather(*tasks)
 
@@ -70,8 +68,8 @@ class GameManager:
                                     **player.to_dict()
                                 })
 
-        await self._send_response(response=response, player=player)
-        await self._distribute_game(to_waiting=True)
+        await self.send_response(response=response, player=player)
+        await self.distribute_game(to_waiting=True)
 
     def pick_starting_blocks(self, player, index):
         player = getattr(self.game, f"player_{player}")
@@ -82,22 +80,46 @@ class GameManager:
 
         return self.game
 
-    def take_turn(self, turn: Turn):
-        from_player = getattr(self.game, f'player_{turn.from_player_id}')  # type: Player
-        to_player = getattr(self.game, f'player_{turn.to_player_id}')      # type: Player
-        from_player.guess_block(target_player=to_player, target_block_index=turn.target, guess=turn.guess)
+    async def take_turn(self, message):
+        player = getattr(self.game, f"player_{message.body['player_id']}")
+        player.drawing_block()
+        await self.pick_block(player=player, index=message.body['block_index'])
+        guess_message = await player.ws.recv()
+        guess = Guess.deserialize(guess_message)
 
+        await self.guess_block(player, guess=guess)
+
+    async def pick_block(self, player, index):
+        player.draw_block(blocks=self.game.remaining_blocks, index=index)
+        player.guessing_block()
+        await self.distribute_game()
+
+    async def guess_block(self, player, guess: Guess):
+        from_player = player                                                # type: Player
+        to_player = getattr(self.game, f'player_{guess.to_player_id}')      # type: Player
+        success = from_player.guess_block(target_player=to_player, target_block_index=guess.target, guess=guess.guess)
+        await self.distribute_game()
+        if success:
+            guess_message = await player.ws.recv()
+            guess = Guess.deserialize(guess_message)
+            await self.guess_block(player, guess)
+        else:
+            from_player.get_ready()
+            self.game.swap_turn()
+            next_player = getattr(self.game, f'player_{self.game.turn}')
+            next_player.drawing_block()
         return self.game
 
     async def update_game(self, message):
-        if Actions(message.action) == Actions.PICK_BLOCK:
-            self.pick_starting_blocks(message.body['player_id'], message.body['block_index'])
+        if self.game.state == GameState.PLAYING:
+            if Actions(message.action) == Actions.TAKE_TURN:
+                await self.take_turn(message=message)
 
-        elif Actions(message.action) == Actions.TAKE_TURN:
-            turn = Turn(**message.body)
-            self.take_turn(turn)
+        elif self.game.state == GameState.INITIATED:
+            if Actions(message.action) == Actions.PICK_BLOCK:
+                self.pick_starting_blocks(message.body['player_id'], message.body['block_index'])
 
-        await self._distribute_game()
+        await self.distribute_game()
 
     @staticmethod
     def _initiate_blocks():
@@ -109,14 +131,18 @@ class GameManager:
 
     def _check_ready(self):
         if self.game.state != GameState.INITIATED:
-            return
+            return False
 
         for player in self._players:
             if not len(player.deck) == 4:
-                return
+                return False
 
         self._add_joker_and_shuffle()
         self.game.state = GameState.PLAYING
+        self.game.set_turn()
+        self.game.player_1.drawing_block()
+
+        return True
 
     def _add_joker_and_shuffle(self):
         colors = [color.value for color in BlockColors]
@@ -125,9 +151,9 @@ class GameManager:
 
         random.shuffle(self.game.remaining_blocks)
 
-    async def _distribute_game(self, to_waiting=False):
+    async def distribute_game(self, to_waiting=False):
         response = Response(action=Actions.UPDATE_GAME.value, body=self.game.to_dict())
-        serialized_response = ResponseSerializer(response).serialize()
+        serialized_response = response.serialize()
         if to_waiting:
             tasks = [asyncio.ensure_future(ws.send(serialized_response))
                      for ws in self._waiting]
@@ -136,15 +162,15 @@ class GameManager:
                      for player in self._players]
         await asyncio.gather(*tasks)
 
-    async def _distribute_response(self, response):
-        serialized_response = ResponseSerializer(response).serialize()
+    async def distribute_response(self, response):
+        serialized_response = response.serialize()
         tasks = [asyncio.ensure_future(player.ws.send(serialized_response))
                  for player in self._players]
         await asyncio.gather(*tasks)
 
     @staticmethod
-    async def _send_response(response, player):
-        serialized_response = ResponseSerializer(response).serialize()
+    async def send_response(response, player):
+        serialized_response = response.serialize()
         await player.ws.send(serialized_response)
 
     @property

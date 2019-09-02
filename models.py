@@ -1,9 +1,15 @@
-from enums import GameState, BlockColors
+import abc
+import ujson
+
+from enums import GameState, BlockColors, PlayerState
 
 
 class BaseModel:
     def to_dict(self):
         raise NotImplementedError
+
+    def serialize(self):
+        return ujson.dumps(self.to_dict())
 
 
 class Block(BaseModel):
@@ -23,6 +29,11 @@ class Block(BaseModel):
             "color": self._color,
             "showing": self._showing
         }
+
+    @classmethod
+    def deserialize(cls, value):
+        value = ujson.loads(value)
+        return cls(**value)
 
     @property
     def position(self):
@@ -54,6 +65,7 @@ class Player(BaseModel):
         self._ws = ws
         self._deck = []
         self._last_draw = None
+        self._state = PlayerState.NOT_READY
 
     def __repr__(self):
         return f"Player: {self._name}"
@@ -89,8 +101,18 @@ class Player(BaseModel):
     def to_dict(self):
         return {
             "name": self.name,
-            "deck": self.deck
+            "deck": self.deck,
+            "state": self.state.value
         }
+
+    def get_ready(self):
+        self._state = PlayerState.READY
+
+    def drawing_block(self):
+        self._state = PlayerState.DRAWING
+
+    def guessing_block(self):
+        self._state = PlayerState.GUESSING
 
     @property
     def name(self):
@@ -99,6 +121,10 @@ class Player(BaseModel):
     @property
     def deck(self):
         return self._deck
+
+    @property
+    def state(self):
+        return self._state
 
     @property
     def ws(self):
@@ -116,18 +142,21 @@ class Game(BaseModel):
         self._players = []
         self._state = GameState.CREATED
 
+        self._turn = None
+
     def to_dict(self):
         data = {
             "remaining_blocks": self.remaining_blocks,
             "players": [player.to_dict() for player in self.players],
-            "game_state": self.state.value
+            "game_state": self.state.value,
+            "turn": self.turn
         }
 
-        for attr in dir(self):
-            if attr.startswith('player_'):
-                player = getattr(self, attr)
-                if player:
-                    data[attr] = player.to_dict()
+        # for attr in dir(self):
+        #     if attr.startswith('player_'):
+        #         player = getattr(self, attr)
+        #         if player:
+        #             data[attr] = player.to_dict()
 
         return data
 
@@ -180,10 +209,6 @@ class Game(BaseModel):
         self._players.append(value)
 
     @property
-    def players(self):
-        return self._players
-
-    @property
     def remaining_blocks(self):
         return self._blocks
 
@@ -191,25 +216,40 @@ class Game(BaseModel):
     def remaining_blocks(self, value):
         self._blocks = value
 
+    @property
+    def players(self):
+        return self._players
 
-class Turn(BaseModel):
-    def __init__(self, from_player_id, to_player_id, target, guess):
-        self._from_player_id = from_player_id
+    @property
+    def turn(self):
+        return self._turn
+
+    def set_turn(self):
+        self._turn = 1
+
+    def swap_turn(self):
+        self._turn += 1
+        if self._turn > len(self._players):
+            self._turn = 1
+
+
+class Guess(BaseModel):
+    def __init__(self, to_player_id, target, guess):
         self._to_player_id = to_player_id
         self._target = target
         self._guess = guess
 
     def to_dict(self):
         return {
-            "from_player_id": self.from_player_id,
             "to_player_id": self.to_player_id,
             "target": self.target,
             "guess": self.guess
         }
 
-    @property
-    def from_player_id(self):
-        return self._from_player_id
+    @classmethod
+    def deserialize(cls, value):
+        value = ujson.loads(value)
+        return cls(**value)
 
     @property
     def to_player_id(self):
@@ -238,6 +278,11 @@ class Request(BaseModel):
             "body": self.body
         }
 
+    @classmethod
+    def deserialize(cls, value):
+        value = ujson.loads(value)
+        return cls(**value)
+
     @property
     def action(self):
         return self._action
@@ -262,6 +307,11 @@ class Response(BaseModel):
             "message": self.message,
             "body": self.body
         }
+
+    @classmethod
+    def deserialize(cls, value):
+        value = ujson.loads(value)
+        return cls(**value)
 
     @property
     def action(self):

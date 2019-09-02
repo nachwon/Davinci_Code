@@ -5,7 +5,7 @@ from sanic.websocket import WebSocketProtocol
 
 from enums import Actions, GameState
 from managers import GameManager
-from serializers import RequestSerializer
+from models import Request
 
 app = Sanic()
 
@@ -25,17 +25,15 @@ async def feed(request, ws, *args, **kwargs):
     game = manager.game
 
     await ws.send(ujson.dumps({
-        "game_state": game.state.value,
-        "message": message,
-        "body": None
+        "message": message
     }))
     manager.add_waiting(ws=ws)
-    await manager._distribute_game(to_waiting=True)
+    await manager.distribute_game(to_waiting=True)
 
     while True:
         message = await ws.recv()
-        message = RequestSerializer().deserialize(message)
-        print(message)
+        message = Request.deserialize(message)
+        print(message.to_dict())
 
         if GameState(game.state) == GameState.CREATED:
             print('Waiting for players...')
