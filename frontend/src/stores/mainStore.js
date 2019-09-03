@@ -7,12 +7,13 @@ import Block from "../components/block";
 class MainStore extends React.Component {
     @observable ws = null;
 
-    @observable gameState = gameStateEnum.C;
+    // Snackbar messages
+    @observable variant = 'info';
     @observable showMessage = false;
     @observable message = '';
 
     // Game States
-    @observable gameState = 'CREATED';
+    @observable gameState = gameStateEnum.C;
     @observable action = '';
     @observable remainingBlocks = [];
     @observable turn = null;
@@ -22,6 +23,8 @@ class MainStore extends React.Component {
     @observable player_id = null;
     @observable player_name = null;
     @observable player_state = null;
+    @observable player_1 = null;
+    @observable player_2 = null;
 
     // Deck States
     @observable myDeck = [];
@@ -38,6 +41,13 @@ class MainStore extends React.Component {
     }
 
     @action.bound
+    showSnackBar(message, variant='info') {
+        this.variant = variant;
+        this.message = message;
+        this.showMessage = true;
+    }
+
+    @action.bound
     handleMessage(message) {
         const response = JSON.parse(message.data);
         console.log('response', response);
@@ -45,8 +55,7 @@ class MainStore extends React.Component {
         this.action = response.action;
 
         if (response.hasOwnProperty('message') && response.message) {
-            this.message = response.message;
-            this.showMessage = true;
+            this.showSnackBar(response.message)
         }
 
         if (response.action === 'add_player') {
@@ -56,6 +65,8 @@ class MainStore extends React.Component {
         if (response.action === 'update_game') {
             console.log(response, 'update');
             this.players = response.body.players;
+            this.player_1 = response.body.player_1
+            this.player_2 = response.body.player_2
             this.gameState = gameStateEnum[response.body.game_state];
             this.remainingBlocks = response.body.remaining_blocks;
 
@@ -115,16 +126,15 @@ class MainStore extends React.Component {
                     };
                     this.sendMessage(message);
                 } else if (this.player_state === 'G') {
-                    this.message = 'You have to make a guess';
-                    this.showMessage = true;
+                    this.showSnackBar('You have to make a guess', 'warning')
                 }
 
             } else {
-                this.message = 'Not your turn'
-                this.showMessage = true;
+                this.showSnackBar('Not your turn', 'warning')
             }
         // If game is initiated
         } else {
+            console.log("initiated, Pick block", this.player_id);
             const message = {
                 "action": "pick_block",
                 "body": {
@@ -143,7 +153,21 @@ class MainStore extends React.Component {
     }
 
     @action.bound
-    showGuessModal(to_player_id, target) {
+    showGuessModal(to_player_id, target, isShowing) {
+        if (this.gameState !== gameStateEnum.P || this.player_id !== this.turn || to_player_id === this.player_id) {
+            this.showSnackBar('Invalid operation!', 'info')
+            return
+        }
+
+        if (isShowing) {
+            this.showSnackBar("You've already guessed it!", 'info')
+            return
+        }
+
+        if (this.player_state !== 'G') {
+            this.showSnackBar('Pick a block first!', 'warning')
+            return
+        }
         if (this.player_id !== to_player_id) {
             this.to_player_id = to_player_id;
             this.target = target;
@@ -183,34 +207,44 @@ class MainStore extends React.Component {
         )
     }
 
-    @computed get renderMyBlocks() {
-        if (this.myDeck) {
-            return this.myDeck.map((value, index) => {
+    @computed get renderOpponentBlocks() {
+        
+        const the_opponents = this.players.filter((value, index) => {
+            return index + 1 !== parseInt(this.player_id)
+        });
+        console.log('opponents', the_opponents)
+        const the_opponent = the_opponents[0];
+
+        if (the_opponent) {
+            return the_opponent.deck.map((value, index) => {
                 return (
                     <Block
-                        onClick={() => this.showGuessModal(1, index)} 
+                        onClick={() => this.showGuessModal(the_opponent.turn_id, index, value.showing)} 
                         key={index} 
                         index={index} 
                         number={value.number} 
                         color={value.color} 
-                        showing={true} 
+                        showing={value.showing} 
                     />
                 )
             })
         }
     }
 
-    @computed get renderYourBlocks() {
-        if (this.player2Deck) {
-            return this.player2Deck.map((value, index) => {
+    @computed get renderMyBlocks() {
+
+        const the_player = this.players[parseInt(this.player_id) - 1];
+
+        if (the_player) {
+            return the_player.deck.map((value, index) => {
                 return (
                     <Block 
-                        onClick={() => this.showGuessModal(2, index)} 
+                        onClick={() => this.showGuessModal(this.player_id, index)} 
                         key={index}
                         index={index} 
                         number={value.number} 
                         color={value.color} 
-                        showing={value.showing} 
+                        showing={true} 
                     />
                 )
             })
