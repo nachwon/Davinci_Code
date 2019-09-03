@@ -11,6 +11,7 @@ class Actions(enum.Enum):
     UPDATE_GAME = 'update_game'
     START_GAME = 'start_game'
     PICK_BLOCK = 'pick_block'
+    PLACE_JOKER = 'place_joker'
     TAKE_TURN = 'take_turn'
 
 

@@ -3,7 +3,7 @@ import itertools
 import random
 
 from enums import GameState, BlockColors, Actions
-from models import Game, Block, Player, Response, Guess
+from models import Game, Block, Player, Response, Guess, Request
 
 
 class GameManager:
@@ -57,7 +57,8 @@ class GameManager:
 
         else:
             self._players.append(player)
-            player_id = self._players.index(player) + 1
+            player.turn_id = self._players.index(player)
+            player_id = player.turn_id
 
             setattr(self.game, f"player_{player_id}", player)
 
@@ -71,10 +72,10 @@ class GameManager:
         await self.send_response(response=response, player=player)
         await self.distribute_game(to_waiting=True)
 
-    def pick_starting_blocks(self, player, index):
+    async def pick_starting_blocks(self, player, index):
         player = getattr(self.game, f"player_{player}")
         if len(player.deck) < 4:
-            player.draw_block(blocks=self.game.remaining_blocks, index=index)
+            await player.draw_block(blocks=self.game.remaining_blocks, index=index)
 
         self._check_ready()
 
@@ -90,7 +91,7 @@ class GameManager:
         await self.guess_block(player, guess=guess)
 
     async def pick_block(self, player, index):
-        player.draw_block(blocks=self.game.remaining_blocks, index=index)
+        await player.draw_block(blocks=self.game.remaining_blocks, index=index)
         player.guessing_block()
         await self.distribute_game()
 
@@ -117,7 +118,7 @@ class GameManager:
 
         elif self.game.state == GameState.INITIATED:
             if Actions(message.action) == Actions.PICK_BLOCK:
-                self.pick_starting_blocks(message.body['player_id'], message.body['block_index'])
+                await self.pick_starting_blocks(message.body['player_id'], message.body['block_index'])
 
         await self.distribute_game()
 
