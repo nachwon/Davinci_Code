@@ -20,9 +20,9 @@ class MainStore extends React.Component {
 
     // Player States
     @observable players = [];
-    @observable player_id = null;
-    @observable player_name = null;
-    @observable player_state = null;
+    @observable playerId = null;
+    @observable playerName = null;
+    @observable playerState = null;
     @observable player_1 = null;
     @observable player_2 = null;
 
@@ -32,7 +32,7 @@ class MainStore extends React.Component {
 
     // GuessModal
     @observable openModal = false;
-    @observable to_player_id = null;
+    @observable toPlayerId = null;
     @observable target = null;
     @observable guess = null;
 
@@ -75,15 +75,15 @@ class MainStore extends React.Component {
             }
 
             const me = this.players.filter((value) => {
-                return value.name === this.player_name
+                return value.name === this.playerName
             });
             const opponents = this.players.filter((value) => {
-                return value.name !== this.player_name
+                return value.name !== this.playerName
             });
 
             if (me.length > 0 && opponents.length > 0) {
                 this.myDeck = me[0].deck;
-                this.player_state = me[0].state;
+                this.playerState = me[0].state;
                 this.player2Deck = opponents[0].deck;
             };
         }
@@ -92,8 +92,8 @@ class MainStore extends React.Component {
     @action.bound
     handleAddPlayer(response) {
         if (response.body) {
-            this.player_id = response.body.player_id
-            this.player_name = response.body.name
+            this.playerId = response.body.player_id
+            this.playerName = response.body.name
         }
     }
 
@@ -115,18 +115,22 @@ class MainStore extends React.Component {
     async pickBlock(block_index) {
         // If game is playing
         if (this.gameState === gameStateEnum.P) {
-            if (this.player_id === this.turn) {
-                if (this.player_state === 'D') {
+            // If it is my turn
+            if (this.playerId === this.turn) {
+                // If the player state is in D
+                if (this.playerState === 'D') {
                     const message = {
                         "action": "take_turn",
                         "body": {
-                            "player_id": this.player_id,
+                            "player_id": this.playerId,
                             "block_index": block_index
                         }
                     };
                     this.sendMessage(message);
-                } else if (this.player_state === 'G') {
+                } else if (this.playerState === 'G') {
                     this.showSnackBar('You have to make a guess', 'warning')
+                } else if (this.playerState === 'MG') {
+                    this.showSnackBar('You cannot draw more. Either make a guess or yield turn.')
                 }
 
             } else {
@@ -134,11 +138,10 @@ class MainStore extends React.Component {
             }
         // If game is initiated
         } else {
-            console.log("initiated, Pick block", this.player_id);
             const message = {
                 "action": "pick_block",
                 "body": {
-                    "player_id": this.player_id,
+                    "player_id": this.playerId,
                     "block_index": block_index
                 }
             }
@@ -153,9 +156,9 @@ class MainStore extends React.Component {
     }
 
     @action.bound
-    showGuessModal(to_player_id, target, isShowing) {
-        if (this.gameState !== gameStateEnum.P || this.player_id !== this.turn || to_player_id === this.player_id) {
-            this.showSnackBar('Invalid operation!', 'info')
+    showGuessModal(toPlayerId, target, isShowing) {
+        if (this.gameState !== gameStateEnum.P || this.playerId !== this.turn || toPlayerId === this.playerId) {
+            this.showSnackBar('Invalid operation!', 'error')
             return
         }
 
@@ -164,14 +167,17 @@ class MainStore extends React.Component {
             return
         }
 
-        if (this.player_state !== 'G') {
+        if (this.playerState === 'D') {
             this.showSnackBar('Pick a block first!', 'warning')
             return
         }
-        if (this.player_id !== to_player_id) {
-            this.to_player_id = to_player_id;
-            this.target = target;
-            this.openModal = true;
+
+        if (this.playerState === 'G' || this.playerState === 'MG') {
+            if (this.playerId !== toPlayerId) {
+                this.toPlayerId = toPlayerId;
+                this.target = target;
+                this.openModal = true;
+            }
         }
     }
 
@@ -183,12 +189,24 @@ class MainStore extends React.Component {
     @action.bound
     makeGuess(e) {
         const guess_message = {
-            "to_player_id": this.to_player_id,
-            "target": this.target,
-            "guess": this.guess
+            "action": "make_guess",
+            "body": {
+                "to_player_id": this.toPlayerId,
+                "target": this.target,
+                "guess": this.guess
+            }
         }
         this.sendMessage(guess_message);
         this.openModal = false;
+    }
+
+    @action.bound
+    yieldTurn(e) {
+        const yield_message = {
+            "action": "yield_turn",
+            "body": ""
+        }
+        this.sendMessage(yield_message)
     }
 
     @computed get renderRemainingBlocks() {
@@ -210,7 +228,7 @@ class MainStore extends React.Component {
     @computed get renderOpponentBlocks() {
         
         const the_opponents = this.players.filter((value, index) => {
-            return index + 1 !== parseInt(this.player_id)
+            return index + 1 !== parseInt(this.playerId)
         });
         console.log('opponents', the_opponents)
         const the_opponent = the_opponents[0];
@@ -233,13 +251,13 @@ class MainStore extends React.Component {
 
     @computed get renderMyBlocks() {
 
-        const the_player = this.players[parseInt(this.player_id) - 1];
+        const the_player = this.players[parseInt(this.playerId) - 1];
 
         if (the_player) {
             return the_player.deck.map((value, index) => {
                 return (
                     <Block 
-                        onClick={() => this.showGuessModal(this.player_id, index)} 
+                        onClick={() => this.showGuessModal(this.playerId, index)} 
                         key={index}
                         index={index} 
                         number={value.number} 

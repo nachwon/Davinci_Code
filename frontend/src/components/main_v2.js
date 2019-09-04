@@ -23,14 +23,14 @@ class Main extends React.Component {
         return (
             <Container>
                 <div>
-                    <div>{`My ID: ${this.store.player_id}`}</div>
+                    <div>{`My ID: ${this.store.playerId}`}</div>
                     <div>{`Game State: ${this.store.gameState}`}</div>
                     <div>{`Action: ${this.store.action}`}</div>
                     <div>{`Turn: ${this.store.turn}`}</div>
-                    <div>{this.store.player_id === this.store.turn ?
+                    <div>{this.store.playerId === this.store.turn ?
                         "My Turn" : "Not My Turn"
                     }</div>
-                    <div>{`player state: ${this.store.player_state}`}</div>
+                    <div>{`player state: ${this.store.playerState}`}</div>
                 </div>
                 {this.store.gameState === gameStateEnum.C ?
                     <PlayerStatus MainStore={this.store} />

@@ -21,3 +21,10 @@
 .guess-modal-buttons button {
     margin: 0 10px;
 }
+
+.yield-button {
+    display: block;
+    position: fixed;
+    bottom: 5%;
+    right: 5%;
+}
