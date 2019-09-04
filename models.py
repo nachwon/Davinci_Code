@@ -121,6 +121,9 @@ class Player(BaseModel):
     def guessing_block(self):
         self._state = PlayerState.GUESSING
 
+    def guessing_more(self):
+        self._state = PlayerState.MORE_GUESS
+
     @property
     def name(self):
         return self._name

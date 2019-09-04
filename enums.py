@@ -13,6 +13,10 @@ class Actions(enum.Enum):
     PICK_BLOCK = 'pick_block'
     PLACE_JOKER = 'place_joker'
     TAKE_TURN = 'take_turn'
+    MAKE_GUESS = 'make_guess'
+    YIELD_TURN = 'yield_turn'
+    GUESS_SUCCESS = 'guess_success'
+    GUESS_FAIL = 'guess_fail'
 
 
 class PlayerState(enum.Enum):
@@ -20,6 +24,7 @@ class PlayerState(enum.Enum):
     READY = 'R'
     DRAWING = 'D'
     GUESSING = 'G'
+    MORE_GUESS = 'MG'
 
 
 class GameState(enum.Enum):

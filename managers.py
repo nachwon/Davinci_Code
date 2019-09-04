@@ -85,8 +85,9 @@ class GameManager:
         player = getattr(self.game, f"player_{message.body['player_id']}")
         player.drawing_block()
         await self.pick_block(player=player, index=message.body['block_index'])
-        guess_message = await player.ws.recv()
-        guess = Guess.deserialize(guess_message)
+        request = await player.ws.recv()
+        request = Request.deserialize(value=request)
+        guess = Guess(**request.body)
 
         await self.guess_block(player, guess=guess)
 
@@ -101,10 +102,28 @@ class GameManager:
         success = from_player.guess_block(target_player=to_player, target_block_index=guess.target, guess=guess.guess)
         await self.distribute_game()
         if success:
-            guess_message = await player.ws.recv()
-            guess = Guess.deserialize(guess_message)
-            await self.guess_block(player, guess)
+            response = Response(action=Actions.GUESS_SUCCESS.value, message="Guess Succeeded!", body="")
+            from_player.guessing_more()
+            await self.distribute_response(response=response)
+            await self.distribute_game()
+            next_action_message = await player.ws.recv()
+            request = Request.deserialize(value=next_action_message)
+
+            if request.action == Actions.MAKE_GUESS.value:
+                guess = Guess(**request.body)
+                await self.guess_block(player, guess)
+
+            elif request.action == Actions.YIELD_TURN.value:
+                from_player.get_ready()
+                self.game.swap_turn()
+                next_player = getattr(self.game, f'player_{self.game.turn}')
+                next_player.drawing_block()
+            else:
+                raise TypeError('Invalid Action type.')
+
         else:
+            response = Response(action=Actions.GUESS_FAIL.value, message="Guess Failed!", body="")
+            await self.distribute_response(response=response)
             from_player.get_ready()
             self.game.swap_turn()
             next_player = getattr(self.game, f'player_{self.game.turn}')
