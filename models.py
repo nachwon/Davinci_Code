@@ -1,7 +1,7 @@
 import abc
 import ujson
 
-from enums import GameState, BlockColors, PlayerState
+from enums import GameState, BlockColors, PlayerState, Actions
 
 
 class BaseModel:
@@ -62,6 +62,7 @@ class Block(BaseModel):
 class Player(BaseModel):
     def __init__(self, name, ws):
         self._name = name
+        self._turn_id = None
         self._ws = ws
         self._deck = []
         self._last_draw = None
@@ -73,11 +74,14 @@ class Player(BaseModel):
     def __eq__(self, other):
         return other.name == self.name
 
-    def draw_block(self, blocks, index):
+    async def draw_block(self, blocks, index):
         block = blocks.pop(index)
 
         if block.number == '-':
-            joker_position = input(f"Enter position to place Joker block \n {', '.join([str(block.position) for block in self._deck])}")
+            response = Response(action=Actions.PLACE_JOKER.value,
+                                message="Select position to place a joker!").serialize()
+            await self.ws.send(response)
+            joker_position = await self.ws.recv()
             block.position = int(joker_position)
 
         self._last_draw = block
@@ -89,18 +93,21 @@ class Player(BaseModel):
 
     def guess_block(self, target_player, target_block_index, guess):
         target_block = target_player.deck[target_block_index]
-        if target_block.number == guess:
+        if str(target_block.number) == guess:
             target_block.flip()
+            print(guess)
             print('Guessed!')
             return True
         else:
             self._last_draw.flip()
+            print(guess)
             print('Guess Failed!')
             return False
 
     def to_dict(self):
         return {
             "name": self.name,
+            "turn_id": self._turn_id,
             "deck": self.deck,
             "state": self.state.value
         }
@@ -114,9 +121,20 @@ class Player(BaseModel):
     def guessing_block(self):
         self._state = PlayerState.GUESSING
 
+    def guessing_more(self):
+        self._state = PlayerState.MORE_GUESS
+
     @property
     def name(self):
         return self._name
+
+    @property
+    def turn_id(self):
+        return self._turn_id
+
+    @turn_id.setter
+    def turn_id(self, value):
+        self._turn_id = value + 1
 
     @property
     def deck(self):
@@ -152,11 +170,11 @@ class Game(BaseModel):
             "turn": self.turn
         }
 
-        # for attr in dir(self):
-        #     if attr.startswith('player_'):
-        #         player = getattr(self, attr)
-        #         if player:
-        #             data[attr] = player.to_dict()
+        for attr in dir(self):
+            if attr.startswith('player_'):
+                player = getattr(self, attr)
+                if player:
+                    data[attr] = player.to_dict()
 
         return data
 

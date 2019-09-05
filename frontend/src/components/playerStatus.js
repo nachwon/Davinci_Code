@@ -16,7 +16,7 @@ class PlayerStatus extends React.Component {
         return this.store.players.map((value, index) => {
             return (
             <Avatar 
-                className={value.name === this.store.player_name ? 'player-avatar player-avatar-me': 'player-avatar'} 
+                className={value.name === this.store.playerName ? 'player-avatar player-avatar-me': 'player-avatar'} 
                 key={index}
             >
                 {value.name.slice(0, 2)}
@@ -27,18 +27,18 @@ class PlayerStatus extends React.Component {
     render() {
         return (
             <div>
-            {this.store.player_id ? 
-                <Paper className='player-status-container'>
-                    <Typography variant="h5" component="h3">
-                        {`Player ID: ${this.store.player_id}`}
-                    </Typography>
-                    <Typography component="p">
-                        {`Player Name: ${this.store.player_name}`}
-                    </Typography>
-                    <Button onClick={(e) => this.store.startGame(this.ws)}>Start Game</Button>
-                </Paper>
-                :
-                <AddPlayerForm MainStore={this.store} />}
+                {this.store.playerId ? 
+                    <Paper className='player-status-container'>
+                        <Typography variant="h5" component="h3">
+                            {`Player ID: ${this.store.playerId}`}
+                        </Typography>
+                        <Typography component="p">
+                            {`Player Name: ${this.store.playerName}`}
+                        </Typography>
+                        <Button onClick={(e) => this.store.startGame(this.ws)}>Start Game</Button>
+                    </Paper>
+                    :
+                    <AddPlayerForm MainStore={this.store} />}
             <Grid container justify="center" alignItems="center">
                 {this.renderPlayerList()}
             </Grid>

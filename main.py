@@ -22,7 +22,6 @@ async def feed(request, ws, *args, **kwargs):
         message = "Game created!!"
     else:
         message = f"Joined the session {session_id}"
-    game = manager.game
 
     await ws.send(ujson.dumps({
         "message": message
@@ -35,7 +34,7 @@ async def feed(request, ws, *args, **kwargs):
         message = Request.deserialize(message)
         print(message.to_dict())
 
-        if GameState(game.state) == GameState.CREATED:
+        if GameState(manager.game.state) == GameState.CREATED:
             print('Waiting for players...')
             if Actions(message.action) == Actions.ADD_PLAYER:
                 await manager.add_player(name=message.body['name'], ws=ws)

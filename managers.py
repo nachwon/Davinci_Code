@@ -3,7 +3,7 @@ import itertools
 import random
 
 from enums import GameState, BlockColors, Actions
-from models import Game, Block, Player, Response, Guess
+from models import Game, Block, Player, Response, Guess, Request
 
 
 class GameManager:
@@ -57,7 +57,8 @@ class GameManager:
 
         else:
             self._players.append(player)
-            player_id = self._players.index(player) + 1
+            player.turn_id = self._players.index(player)
+            player_id = player.turn_id
 
             setattr(self.game, f"player_{player_id}", player)
 
@@ -71,10 +72,10 @@ class GameManager:
         await self.send_response(response=response, player=player)
         await self.distribute_game(to_waiting=True)
 
-    def pick_starting_blocks(self, player, index):
+    async def pick_starting_blocks(self, player, index):
         player = getattr(self.game, f"player_{player}")
         if len(player.deck) < 4:
-            player.draw_block(blocks=self.game.remaining_blocks, index=index)
+            await player.draw_block(blocks=self.game.remaining_blocks, index=index)
 
         self._check_ready()
 
@@ -84,13 +85,14 @@ class GameManager:
         player = getattr(self.game, f"player_{message.body['player_id']}")
         player.drawing_block()
         await self.pick_block(player=player, index=message.body['block_index'])
-        guess_message = await player.ws.recv()
-        guess = Guess.deserialize(guess_message)
+        request = await player.ws.recv()
+        request = Request.deserialize(value=request)
+        guess = Guess(**request.body)
 
         await self.guess_block(player, guess=guess)
 
     async def pick_block(self, player, index):
-        player.draw_block(blocks=self.game.remaining_blocks, index=index)
+        await player.draw_block(blocks=self.game.remaining_blocks, index=index)
         player.guessing_block()
         await self.distribute_game()
 
@@ -100,10 +102,28 @@ class GameManager:
         success = from_player.guess_block(target_player=to_player, target_block_index=guess.target, guess=guess.guess)
         await self.distribute_game()
         if success:
-            guess_message = await player.ws.recv()
-            guess = Guess.deserialize(guess_message)
-            await self.guess_block(player, guess)
+            response = Response(action=Actions.GUESS_SUCCESS.value, message="Guess Succeeded!", body="")
+            from_player.guessing_more()
+            await self.distribute_response(response=response)
+            await self.distribute_game()
+            next_action_message = await player.ws.recv()
+            request = Request.deserialize(value=next_action_message)
+
+            if request.action == Actions.MAKE_GUESS.value:
+                guess = Guess(**request.body)
+                await self.guess_block(player, guess)
+
+            elif request.action == Actions.YIELD_TURN.value:
+                from_player.get_ready()
+                self.game.swap_turn()
+                next_player = getattr(self.game, f'player_{self.game.turn}')
+                next_player.drawing_block()
+            else:
+                raise TypeError('Invalid Action type.')
+
         else:
+            response = Response(action=Actions.GUESS_FAIL.value, message="Guess Failed!", body="")
+            await self.distribute_response(response=response)
             from_player.get_ready()
             self.game.swap_turn()
             next_player = getattr(self.game, f'player_{self.game.turn}')
@@ -117,7 +137,7 @@ class GameManager:
 
         elif self.game.state == GameState.INITIATED:
             if Actions(message.action) == Actions.PICK_BLOCK:
-                self.pick_starting_blocks(message.body['player_id'], message.body['block_index'])
+                await self.pick_starting_blocks(message.body['player_id'], message.body['block_index'])
 
         await self.distribute_game()
 

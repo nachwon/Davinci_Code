@@ -6,6 +6,7 @@ import { observer } from 'mobx-react';
 import { bind } from 'decko';
 import './main.css';
 import MainStore from '../stores/mainStore';
+import CustomizedSnackbars from './snackBarMessage';
 import { gameStateEnum } from './enums';
 
 @observer
@@ -22,14 +23,14 @@ class Main extends React.Component {
         return (
             <Container>
                 <div>
-                    <div>{`My ID: ${this.store.player_id}`}</div>
+                    <div>{`My ID: ${this.store.playerId}`}</div>
                     <div>{`Game State: ${this.store.gameState}`}</div>
                     <div>{`Action: ${this.store.action}`}</div>
                     <div>{`Turn: ${this.store.turn}`}</div>
-                    <div>{this.store.player_id === this.store.turn ?
-                        "My Turn" : "Your Turn"
+                    <div>{this.store.playerId === this.store.turn ?
+                        "My Turn" : "Not My Turn"
                     }</div>
-                    <div>{`player state: ${this.store.player_state}`}</div>
+                    <div>{`player state: ${this.store.playerState}`}</div>
                 </div>
                 {this.store.gameState === gameStateEnum.C ?
                     <PlayerStatus MainStore={this.store} />
@@ -37,15 +38,22 @@ class Main extends React.Component {
                 {this.store.gameState === gameStateEnum.I || this.store.gameState === gameStateEnum.P ?
                     <GameBoard MainStore={this.store} /> 
                     : null}
-                <Snackbar
+                {/* <Snackbar
                     open={this.store.showMessage}
                     autoHideDuration={3000}
+                    variant={this.store.variant}
                     onClose={() => this.store.showMessage = false}
                     message={this.store.message}
                     anchorOrigin={{
                         vertical: 'bottom',
                         horizontal: 'left',
                       }}
+                /> */}
+                <CustomizedSnackbars 
+                    open={this.store.showMessage}
+                    message={this.store.message}
+                    variant={this.store.variant}
+                    onClose={() => this.store.showMessage = false}
                 />
             </Container>
         )
