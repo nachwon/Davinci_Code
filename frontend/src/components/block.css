@@ -5,6 +5,12 @@
     border-radius: 3px;
     display: flex;
     box-shadow: 2px 1px 9px -2px #333;
+    transition-duration: 150ms;
+}
+
+.block-outer:hover {
+    z-index: 100;
+    transform: perspective(600px) rotateX(1deg) rotateY(1deg) scale(1.1);
 }
 
 .block-inner {
