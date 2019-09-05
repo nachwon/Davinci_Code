@@ -60,9 +60,7 @@ class MainStore extends React.Component {
 
         if (response.action === 'add_player') {
             this.handleAddPlayer(response)
-        }
-
-        if (response.action === 'update_game') {
+        } else if (response.action === 'update_game') {
             console.log(response, 'update');
             this.players = response.body.players;
             this.player_1 = response.body.player_1
@@ -86,6 +84,10 @@ class MainStore extends React.Component {
                 this.playerState = me[0].state;
                 this.player2Deck = opponents[0].deck;
             };
+        } else if (response.action === 'guess_success') {
+            this.showSnackBar(response.message, 'success');
+        } else if (response.action === 'guess_fail') {
+            this.showSnackBar(response.message, 'error');
         }
     }
 
