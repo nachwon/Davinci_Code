@@ -59,12 +59,27 @@ class Block(BaseModel):
         self._showing = True
 
 
+class JokerBlock(Block):
+    def __init__(self, position, number, color, showing=False):
+        super().__init__(position, number, color, showing)
+        self._left_to = None
+
+    @property
+    def left_to(self):
+        return self._left_to
+
+    @left_to.setter
+    def left_to(self, value):
+        self._left_to = value
+
+
 class Player(BaseModel):
     def __init__(self, name, ws):
         self._name = name
         self._turn_id = None
         self._ws = ws
         self._deck = []
+        self._jokers = []
         self._last_draw = None
         self._state = PlayerState.NOT_READY
 
@@ -81,11 +96,14 @@ class Player(BaseModel):
             response = Response(action=Actions.PLACE_JOKER.value,
                                 message="Select position to place a joker!").serialize()
             await self.ws.send(response)
-            joker_position = await self.ws.recv()
-            block.position = int(joker_position)
+            place_request = await self.ws.recv()
+            request = Request.deserialize(place_request)
+            block.left_to = request.body['position']
+            self._jokers.append(block)
+        else:
+            self._deck.append(block)
 
         self._last_draw = block
-        self._deck.append(block)
         self.sort_deck()
 
     def sort_deck(self):
@@ -138,7 +156,19 @@ class Player(BaseModel):
 
     @property
     def deck(self):
-        return self._deck
+        deck = self._deck
+        positions = [b.position for b in self._deck]
+        while self._jokers:
+            joker = self._jokers.pop()
+            if joker.left_to == 'last':
+                joker.position = deck[-1].position + 0.5
+                deck.append(joker)
+            else:
+                joker.position = joker.left_to - 0.5
+                p = positions.index(joker.left_to)
+                deck.insert(p, joker)
+
+        return deck
 
     @property
     def state(self):
