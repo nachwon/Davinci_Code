@@ -1,7 +1,7 @@
 import React from 'react';
 import { observable, action, runInAction, computed, toJS } from 'mobx';
 import { gameStateEnum } from '../components/enums';
-import Block from "../components/block";
+import { Block, JokerPlacer } from "../components/block";
 
 
 class MainStore extends React.Component {
@@ -208,7 +208,56 @@ class MainStore extends React.Component {
             "action": "yield_turn",
             "body": ""
         }
-        this.sendMessage(yield_message)
+        this.sendMessage(yield_message);
+    }
+
+    @action.bound
+    placeJoker(position) {
+        const message = {
+            "action": "place_joker",
+            "body": {
+                "position": position
+            }
+        }
+        this.sendMessage(message);
+    }
+    
+    @computed get renderBlocksWithJokerPositioner() {
+
+        const the_player = this.players[parseInt(this.playerId) - 1];
+
+        if (the_player) {
+            
+            let children = [];
+            the_player.deck.forEach((value, index) => {
+                children.push(
+                    <JokerPlacer 
+                        key={`placer-${index}}`}
+                        onClick={() => this.placeJoker(value.position)}
+                    />
+                );
+
+                children.push(
+                    <Block 
+                        onClick={() => this.showGuessModal(this.playerId, index)} 
+                        key={index}
+                        index={index} 
+                        number={value.number} 
+                        color={value.color} 
+                        showing={true} 
+                    />
+                )
+            })
+
+            children.push(
+                <JokerPlacer 
+                    key={1000}
+                    onClick={() => this.placeJoker('last')}
+                />
+            );
+
+            return children;
+        }
     }
 
     @computed get renderRemainingBlocks() {

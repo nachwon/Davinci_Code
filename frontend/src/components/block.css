@@ -122,3 +122,15 @@
     background: linear-gradient(0.4turn, #f5f5f5, #a0a0a0ed);
 }
 
+/* Joker Placer */
+
+.joker-placer {
+    border: 1px dashed white;
+    width: 80px;
+    border-radius: 5px;
+    transition-duration: 0.8s;
+}
+
+.joker-placer:hover {
+    border: 1px solid white;
+}

@@ -3,7 +3,7 @@ import itertools
 import random
 
 from enums import GameState, BlockColors, Actions
-from models import Game, Block, Player, Response, Guess, Request
+from models import Game, Block, Player, Response, Guess, Request, JokerBlock
 
 
 class GameManager:
@@ -166,7 +166,7 @@ class GameManager:
 
     def _add_joker_and_shuffle(self):
         colors = [color.value for color in BlockColors]
-        jokers = [Block(position=-1, number='-', color=color) for color in colors]
+        jokers = [JokerBlock(position=-1, number='-', color=color) for color in colors]
         self.game.remaining_blocks += jokers
 
         random.shuffle(self.game.remaining_blocks)

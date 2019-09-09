@@ -14,7 +14,7 @@ class Main extends React.Component {
     constructor(props) {
         super(props);
         this.store = new MainStore();
-        this.ws = new WebSocket("ws://localhost:8000/feed/1");
+        this.ws = new WebSocket("ws://192.168.0.7:8000/feed/1");
         this.ws.onmessage = (message) => this.store.handleMessage(message)
         this.store.ws = this.ws;
     }
@@ -38,17 +38,6 @@ class Main extends React.Component {
                 {this.store.gameState === gameStateEnum.I || this.store.gameState === gameStateEnum.P ?
                     <GameBoard MainStore={this.store} /> 
                     : null}
-                {/* <Snackbar
-                    open={this.store.showMessage}
-                    autoHideDuration={3000}
-                    variant={this.store.variant}
-                    onClose={() => this.store.showMessage = false}
-                    message={this.store.message}
-                    anchorOrigin={{
-                        vertical: 'bottom',
-                        horizontal: 'left',
-                      }}
-                /> */}
                 <CustomizedSnackbars 
                     open={this.store.showMessage}
                     message={this.store.message}

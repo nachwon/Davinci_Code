@@ -42,4 +42,14 @@ function Block(props) {
     )
 }
 
-export default Block
+function JokerPlacer(props) {
+    const { onClick } = props;
+    return (
+        <div 
+            onClick={onClick} 
+            className="joker-placer"
+        />
+    )
+}
+
+export { Block, JokerPlacer }
