@@ -13,6 +13,7 @@ class GameBoard extends React.Component {
     }
 
     render() {
+        console.log(this.store.action === 'place_joker')
         return (
             <div className="game-board">
                 <div className="game-board-opponent">
@@ -22,14 +23,16 @@ class GameBoard extends React.Component {
                     {this.store.renderRemainingBlocks}
                 </div>
                 <div className="game-board-mine">
-                    {this.store.renderMyBlocks}
+                    {this.store.action === 'place_joker' ? 
+                        this.store.renderBlocksWithJokerPositioner : 
+                        this.store.renderMyBlocks}
                 </div>
                 {this.store.playerState === 'MG' ? 
                     <div className="yield-button">
                         <Zoom
                             onClick={this.store.yieldTurn}
                             unmountOnExit
-                            variant="contained" 
+                            variant="extended" 
                             color="secondary"
                             in={true}
                             style={{
