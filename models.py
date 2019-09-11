@@ -103,6 +103,7 @@ class Player(BaseModel):
 
     async def draw_block(self, blocks, index):
         block = blocks.pop(index)
+        reorder_joker = False
 
         # When the player drew a joker
         if block.number == '-':
@@ -128,8 +129,32 @@ class Player(BaseModel):
                 block.prev = self._deck[position - 1]
             print(position)
             print(self._deck)
+        # When the player drew a normal block
         else:
-            self._deck.append(block)
+            jokers = [(index, block) for index, block in enumerate(self._deck) if isinstance(block, JokerBlock)]
+            for item in jokers:
+                index, joker = item
+                # If the block should be next to a joker, let player choose which side.
+                if joker.prev.position < block.position < joker.next.position:
+                    response = Response(action="reorder_joker",
+                                        message="Select where to place your block.",
+                                        body={"joker": joker.to_dict()}).serialize()
+                    await self.ws.send(response)
+                    place_request = await self.ws.recv()
+                    request = Request.deserialize(place_request)
+                    place = request.body['position']
+                    # Place on the left side of the joker
+                    if place == "L":
+                        self._deck.insert(index, block)
+                        joker.prev = block
+                    # Place on the right side of the joker
+                    elif place == "R":
+                        self._deck.insert(index + 1, block)
+                        joker.next = block
+                    reorder_joker = True
+
+            if not reorder_joker:
+                self._deck.append(block)
         self._last_draw = block
         self.sort_deck()
 
