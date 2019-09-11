@@ -19,6 +19,9 @@ class Block(BaseModel):
         self._color = BlockColors(color).value      # type: str
         self._showing = showing
 
+    def __eq__(self, other):
+        return self.number == other.number and self.color == other.color
+
     def __repr__(self):
         return f"{self._color}-{self._number if self._number != '-' else 'Joker'}-{'open' if self.showing else 'closed'}"
 
@@ -62,15 +65,24 @@ class Block(BaseModel):
 class JokerBlock(Block):
     def __init__(self, position, number, color, showing=False):
         super().__init__(position, number, color, showing)
-        self._left_to = None
+        self._next = None
+        self._prev = None
 
     @property
-    def left_to(self):
-        return self._left_to
+    def next(self):
+        return self._next
 
-    @left_to.setter
-    def left_to(self, value):
-        self._left_to = value
+    @next.setter
+    def next(self, value):
+        self._next = value
+
+    @property
+    def prev(self):
+        return self._prev
+
+    @prev.setter
+    def prev(self, value):
+        self._prev = value
 
 
 class Player(BaseModel):
@@ -92,22 +104,53 @@ class Player(BaseModel):
     async def draw_block(self, blocks, index):
         block = blocks.pop(index)
 
+        # When the player drew a joker
         if block.number == '-':
             response = Response(action=Actions.PLACE_JOKER.value,
                                 message="Select position to place a joker!").serialize()
             await self.ws.send(response)
             place_request = await self.ws.recv()
             request = Request.deserialize(place_request)
-            block.left_to = request.body['position']
-            self._jokers.append(block)
+            position = int(request.body['position'])
+            # Placing it at the end
+            if position == -1:
+                self._deck.append(block)
+                block.next = None
+                block.prev = self._deck[-2]
+            # Placing it in the beginning
+            elif position == 0:
+                self._deck.insert(position, block)
+                block.next = self._deck[1]
+                block.prev = None
+            else:
+                self._deck.insert(position, block)
+                block.next = self._deck[position + 1]
+                block.prev = self._deck[position - 1]
+            print(position)
+            print(self._deck)
         else:
             self._deck.append(block)
-
         self._last_draw = block
         self.sort_deck()
 
     def sort_deck(self):
-        self._deck.sort(key=lambda block: block.position)
+        # Filter out the jokers to a separate list
+        no_jokers = list(filter(lambda b: not isinstance(b, JokerBlock), self._deck))
+        jokers = filter(lambda b: isinstance(b, JokerBlock), self._deck)
+
+        # Sort without jokers using position value
+        no_jokers.sort(key=lambda block: block.position)
+        # And then, add in the jokers using the index of next block
+        for joker in jokers:
+            # If no next, just append
+            if not joker.next:
+                no_jokers.append(joker)
+            # Else, insert it into where next block is at
+            else:
+                insert_index = no_jokers.index(joker.next)
+                no_jokers.insert(insert_index, joker)
+        # Replace deck with newly sorted deck
+        self._deck = no_jokers
 
     def guess_block(self, target_player, target_block_index, guess):
         target_block = target_player.deck[target_block_index]
@@ -156,19 +199,7 @@ class Player(BaseModel):
 
     @property
     def deck(self):
-        deck = self._deck
-        positions = [b.position for b in self._deck]
-        while self._jokers:
-            joker = self._jokers.pop()
-            if joker.left_to == 'last':
-                joker.position = deck[-1].position + 0.5
-                deck.append(joker)
-            else:
-                joker.position = joker.left_to - 0.5
-                p = positions.index(joker.left_to)
-                deck.insert(p, joker)
-
-        return deck
+        return self._deck
 
     @property
     def state(self):
