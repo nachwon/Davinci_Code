@@ -36,6 +36,11 @@ class MainStore extends React.Component {
     @observable target = null;
     @observable guess = null;
 
+    // Reorder Joker
+    @observable targetJoker = {};
+    @observable isDouble = false;
+
+
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -88,6 +93,9 @@ class MainStore extends React.Component {
             this.showSnackBar(response.message, 'success');
         } else if (response.action === 'guess_fail') {
             this.showSnackBar(response.message, 'error');
+        } else if (response.action === 'reorder_joker') {
+            this.targetJoker = response.body.joker;
+            this.isDouble = response.body.double_joker;
         }
     }
 
@@ -221,6 +229,18 @@ class MainStore extends React.Component {
         }
         this.sendMessage(message);
     }
+
+    @action.bound
+    reorderJoker(position) {
+        const message = {
+            "action": "reorder_joker",
+            "body": {
+                "position": position
+            }
+        }
+
+        this.sendMessage(message);
+    }
     
     @computed get renderBlocksWithJokerPositioner() {
 
@@ -233,7 +253,7 @@ class MainStore extends React.Component {
                 children.push(
                     <JokerPlacer 
                         key={`placer-${index}}`}
-                        onClick={() => this.placeJoker(value.position)}
+                        onClick={() => this.placeJoker(index)}
                     />
                 );
 
@@ -252,13 +272,121 @@ class MainStore extends React.Component {
             children.push(
                 <JokerPlacer 
                     key={1000}
-                    onClick={() => this.placeJoker('last')}
+                    onClick={() => this.placeJoker(-1)}
                 />
             );
 
             return children;
         }
     }
+
+    @computed get renderJokerReorder() {
+
+        const the_player = this.players[parseInt(this.playerId) - 1];
+
+        if (the_player) {
+
+            let children = [];
+            console.log('targetJoker', toJS(this.targetJoker));
+            if (this.isDouble) {
+                the_player.deck.forEach((value, index) => {
+                    if (value.color === this.targetJoker.color && value.number === this.targetJoker.number) {
+                        children.push(
+                            <JokerPlacer 
+                                key={`placer-L}`}
+                                onClick={() => this.reorderJoker('L')}
+                            />
+                        );
+                        children.push(
+                            <Block 
+                                onClick={() => this.showGuessModal(this.playerId, index)} 
+                                key={index}
+                                index={index} 
+                                number={value.number} 
+                                color={value.color} 
+                                showing={true} 
+                            />
+                        );
+                        children.push(
+                            <JokerPlacer 
+                                key={`placer-C}`}
+                                onClick={() => this.reorderJoker('C')}
+                            />
+                        );
+                    } else if (value.number === this.targetJoker.number) {
+                        children.push(
+                            <Block 
+                                onClick={() => this.showGuessModal(this.playerId, index)} 
+                                key={index}
+                                index={index} 
+                                number={value.number} 
+                                color={value.color} 
+                                showing={true} 
+                            />
+                        );
+                        children.push(
+                            <JokerPlacer 
+                                key={`placer-R}`}
+                                onClick={() => this.reorderJoker('R')}
+                            />
+                        );
+                    } else {
+                        children.push(
+                            <Block 
+                                onClick={() => this.showGuessModal(this.playerId, index)} 
+                                key={index}
+                                index={index} 
+                                number={value.number} 
+                                color={value.color} 
+                                showing={true} 
+                            />
+                        );
+                    }
+                })
+            } else {
+                the_player.deck.forEach((value, index) => {
+                    if (value.color === this.targetJoker.color && value.number === this.targetJoker.number) {
+                        children.push(
+                            <JokerPlacer 
+                                key={`placer-L}`}
+                                onClick={() => this.reorderJoker('L')}
+                            />
+                        );
+                        children.push(
+                            <Block 
+                                onClick={() => this.showGuessModal(this.playerId, index)} 
+                                key={index}
+                                index={index} 
+                                number={value.number} 
+                                color={value.color} 
+                                showing={true} 
+                            />
+                        );
+                        children.push(
+                            <JokerPlacer 
+                                key={`placer-R}`}
+                                onClick={() => this.reorderJoker('R')}
+                            />
+                        );
+                    } else {
+                        children.push(
+                            <Block 
+                                onClick={() => this.showGuessModal(this.playerId, index)} 
+                                key={index}
+                                index={index} 
+                                number={value.number} 
+                                color={value.color} 
+                                showing={true} 
+                            />
+                        );
+                    }
+                });
+            }
+            return children;
+        }
+    }
+
+
 
     @computed get renderRemainingBlocks() {
             return this.remainingBlocks.map((value, index) => {

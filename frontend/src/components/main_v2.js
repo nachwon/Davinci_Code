@@ -14,7 +14,7 @@ class Main extends React.Component {
     constructor(props) {
         super(props);
         this.store = new MainStore();
-        this.ws = new WebSocket("ws://192.168.0.7:8000/feed/1");
+        this.ws = new WebSocket("ws://localhost:8000/feed/1");
         this.ws.onmessage = (message) => this.store.handleMessage(message)
         this.store.ws = this.ws;
     }
