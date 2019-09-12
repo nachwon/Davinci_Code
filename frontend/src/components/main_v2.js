@@ -1,13 +1,14 @@
 import React from 'react';
 import { Container, Snackbar, Avatar } from '@material-ui/core';
 import GameBoard from '../components/board';
-import PlayerStatus from '../components/playerStatus';
+import WaitingStatus from '../components/waitingStatus';
 import { observer } from 'mobx-react';
 import { bind } from 'decko';
 import './main.css';
 import MainStore from '../stores/mainStore';
 import CustomizedSnackbars from './snackBarMessage';
 import { gameStateEnum } from './enums';
+import PlayerStatus from './playerStatus';
 
 @observer
 class Main extends React.Component {
@@ -31,9 +32,11 @@ class Main extends React.Component {
                         "My Turn" : "Not My Turn"
                     }</div>
                     <div>{`player state: ${this.store.playerState}`}</div>
+
+                    <PlayerStatus MainStore={this.store}/>
                 </div>
                 {this.store.gameState === gameStateEnum.C ?
-                    <PlayerStatus MainStore={this.store} />
+                    <WaitingStatus MainStore={this.store} />
                     :null}
                 {this.store.gameState === gameStateEnum.I || this.store.gameState === gameStateEnum.P ?
                     <GameBoard MainStore={this.store} /> 

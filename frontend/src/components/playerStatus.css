@@ -1,0 +1,10 @@
+.player-status-bar {
+    background-color: #ddd !important;
+    border-radius: 3px;
+    position: relative;
+    width: 680px;
+    height: 25px;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}

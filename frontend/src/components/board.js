@@ -3,6 +3,7 @@ import { Dialog, Radio, Button, FormControlLabel, DialogTitle, Zoom, Fab } from 
 import { observer, inject } from "mobx-react";
 import LoopIcon from '@material-ui/icons/Loop';
 import "./board.css";
+import { Block } from './block';
 
 @inject('MainStore')
 @observer
@@ -16,6 +17,21 @@ class GameBoard extends React.Component {
         console.log(this.store.action === 'place_joker')
         return (
             <div className="game-board">
+                {['confirm_block', 'place_joker', 'reorder_joker'].includes(this.store.action) ?
+                    <div className="confirm-block">
+                        <Block 
+                            onClick={this.store.confirmDraw} 
+                            number={this.store.confirmBlock.number} 
+                            color={this.store.confirmBlock.color} 
+                            showing={true}
+                        />
+                        {this.store.action === 'confirm_block' ?
+                            <Button className="confirm-block-button" onClick={this.store.confirmDraw}>Confirm</Button>
+                            : null
+                        }
+                    </div> : null
+                }
+
                 <div className="game-board-opponent">
                     {this.store.renderOpponentBlocks}
                 </div>
@@ -31,6 +47,7 @@ class GameBoard extends React.Component {
                                 this.store.renderMyBlocks
                     }
                 </div>
+
                 {this.store.playerState === 'MG' ? 
                     <div className="yield-button">
                         <Zoom

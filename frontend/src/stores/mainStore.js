@@ -40,6 +40,9 @@ class MainStore extends React.Component {
     @observable targetJoker = {};
     @observable isDouble = false;
 
+    // Cofirm Block
+    @observable confirmBlock = {};
+
 
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -96,6 +99,8 @@ class MainStore extends React.Component {
         } else if (response.action === 'reorder_joker') {
             this.targetJoker = response.body.joker;
             this.isDouble = response.body.double_joker;
+        } else if (response.action === 'confirm_block') {
+            this.confirmBlock = response.body.block;
         }
     }
 
@@ -241,6 +246,27 @@ class MainStore extends React.Component {
 
         this.sendMessage(message);
     }
+
+    @action.bound
+    confirmDraw(e) {
+        if (this.action === "confirm_block") {
+            const message = {
+                "action": "confirm_block",
+                "body": this.confirmBlock
+            }
+            this.sendMessage(message);
+        }
+    }
+
+    @computed get getActiveStep() {
+        if (this.playerState === 'R') {
+            return 0
+        } else if (this.playerState === 'D') {
+            return 1
+        } else if (this.playerState === 'G' || this.playerState === 'MG') {
+            return 2
+        }
+    }
     
     @computed get renderBlocksWithJokerPositioner() {
 
@@ -385,8 +411,6 @@ class MainStore extends React.Component {
             return children;
         }
     }
-
-
 
     @computed get renderRemainingBlocks() {
             return this.remainingBlocks.map((value, index) => {
