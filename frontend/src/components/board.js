@@ -23,9 +23,13 @@ class GameBoard extends React.Component {
                     {this.store.renderRemainingBlocks}
                 </div>
                 <div className="game-board-mine">
-                    {this.store.action === 'place_joker' ? 
-                        this.store.renderBlocksWithJokerPositioner : 
-                        this.store.renderMyBlocks}
+                    {
+                        this.store.action === 'place_joker' ? 
+                            this.store.renderBlocksWithJokerPositioner : 
+                            this.store.action === 'reorder_joker' ?
+                                this.store.renderJokerReorder :
+                                this.store.renderMyBlocks
+                    }
                 </div>
                 {this.store.playerState === 'MG' ? 
                     <div className="yield-button">
