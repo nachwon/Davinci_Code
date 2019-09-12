@@ -12,6 +12,9 @@ class GameManager:
         self._waiting = []
         self._players = []
 
+    def __repr__(self):
+        return f'<GameManager Game-{self.game._session_id}-{self.game.state.name} Players: {self._players} >'
+
     async def initiate_new_game(self):
         if not self._players:
             raise ValueError('No players...')
