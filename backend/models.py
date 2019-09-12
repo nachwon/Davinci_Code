@@ -104,6 +104,13 @@ class Player(BaseModel):
         block = blocks.pop(index)
         reorder_joker = False
 
+        if self.state != PlayerState.NOT_READY:
+            response = Response(action='confirm_block',
+                                message=f"{block.color} {block.number}",
+                                body={"block": block.to_dict()}).serialize()
+
+            await self.ws.send(response)
+
         # When the player drew a joker
         if block.number == '-':
             response = Response(action=Actions.PLACE_JOKER.value,
@@ -227,6 +234,10 @@ class Player(BaseModel):
 
             # Normal draw
             if not reorder_joker:
+                if self.state != PlayerState.NOT_READY:
+                    confirm_request = await self.ws.recv()
+                    request = Request.deserialize(confirm_request)
+                    print("Confirmed", request)
                 self._deck.append(block)
         self._last_draw = block
         self.sort_deck()
