@@ -117,12 +117,18 @@ class Player(BaseModel):
             if position == -1:
                 self._deck.append(block)
                 block.next = None
-                block.prev = self._deck[-2]
+                prev_block = self._deck[-2]
+                block.prev = prev_block
+                if isinstance(prev_block, JokerBlock):
+                    prev_block.next = block
             # Placing it in the beginning
             elif position == 0:
                 self._deck.insert(position, block)
-                block.next = self._deck[1]
+                next_block = self._deck[1]
+                block.next = next_block
                 block.prev = None
+                if isinstance(next_block, JokerBlock):
+                    next_block.prev = block
             # Placing it somewhere in between the blocks
             else:
                 self._deck.insert(position, block)
@@ -142,13 +148,27 @@ class Player(BaseModel):
             for item in jokers:
                 index, joker = item
 
+                if joker.next is None:
+                    single_joker_condition = joker.prev.position < block.position
+                elif joker.prev is None:
+                    single_joker_condition = block.position < joker.next.position
+                else:
+                    single_joker_condition = joker.prev.position < block.position < joker.next.position
+
                 # If there are two jokers next to each other,
                 # and trying to put down a block that can be placed anywhere next to a joker.
                 # For example, my deck is 3, joker, joker, 5 and if I drew a 4 block,
                 # it can be 3, 4, joker, joker, 5 or 3, joker, 4, joker, 5 or 3, joker, joker, 4, 5.
                 if isinstance(joker.next, JokerBlock):
+                    if joker.next.next is None:
+                        double_joker_condition = joker.prev.position < block.position
+                    elif joker.prev is None:
+                        double_joker_condition = block.position < joker.next.next.position
+                    else:
+                        double_joker_condition = joker.prev.position < block.position < joker.next.next.position
+
                     # Check if the block is within range.
-                    if joker.prev.position < block.position < joker.next.next.position:
+                    if double_joker_condition:
                         second_joker = joker.next
                         # Send a response and wait for request.
                         response = Response(action="reorder_joker",
@@ -183,7 +203,7 @@ class Player(BaseModel):
 
                 # If the block should be next to a joker,
                 # let player choose either left or right side of the joker.
-                elif joker.prev.position < block.position < joker.next.position:
+                elif single_joker_condition:
                     response = Response(action="reorder_joker",
                                         message="Select where to place your block.",
                                         body={
@@ -229,8 +249,11 @@ class Player(BaseModel):
                 try:
                     insert_index = no_jokers.index(joker.next)
                 except ValueError:
-                    insert_index = no_jokers.index(joker.prev)
-                    insert_index += 1
+                    if joker.prev:
+                        insert_index = no_jokers.index(joker.prev)
+                        insert_index += 1
+                    else:
+                        insert_index = 0
                 no_jokers.insert(insert_index, joker)
         # Replace deck with newly sorted deck
         self._deck = no_jokers

@@ -172,7 +172,6 @@ class GameManager:
         random.shuffle(self.game.remaining_blocks)
 
     async def distribute_game(self, to_waiting=False):
-        print(self.game.to_dict())
         response = Response(action=Actions.UPDATE_GAME.value, body=self.game.to_dict())
         serialized_response = response.serialize()
         if to_waiting:
